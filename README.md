@@ -3,7 +3,6 @@
 A stunning, production-grade web showcase for a maximum-depth reasoning prompt engineered for **Claude Opus 4.6** with Extended Thinking.
 
 ![Shadow System](https://img.shields.io/badge/Claude-Opus%204.6-7c3aed?style=for-the-badge&logo=anthropic&logoColor=white)
-![Railway](https://img.shields.io/badge/Deploy-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 
 ## ✨ Features
@@ -15,7 +14,6 @@ A stunning, production-grade web showcase for a maximum-depth reasoning prompt e
 - 📋 **One-Click Copy** — Copy the full prompt with ripple feedback
 - 📱 **Fully Responsive** — Mobile drawer sidebar, adaptive grid
 - ⌨️ **Keyboard Shortcuts** — `Ctrl+C` to copy, `Esc` to close panels
-- 🚀 **Railway-Ready** — Deploy in one click
 
 ## 🚀 Quick Start
 
@@ -31,23 +29,12 @@ npm install
 npm run dev
 ```
 
-## 🚂 Deploy to Railway
-
-1. Connect your GitHub repo to [Railway](https://railway.app)
-2. Railway auto-detects the config from `railway.json`
-3. It will run `npm install && npm run build` → `npm run start`
-4. Your site goes live with a `.up.railway.app` URL
-
-**Environment variables** (Railway sets `PORT` automatically — no config needed).
-
 ## 📁 Project Structure
 
 ```
 ├── index.html              # Entry HTML with SEO meta tags
-├── railway.json            # Railway deployment config
-├── vite.config.js          # Vite build config (Railway-compatible)
+├── vite.config.js          # Vite build config
 ├── package.json            # Dependencies + scripts
-├── .env.example            # Environment variable template
 └── src/
     ├── main.jsx            # React entry point
     ├── App.jsx             # Main app with boot sequence orchestration
@@ -74,8 +61,6 @@ npm run dev
 | React 19 | UI framework |
 | Vite 8 | Build tool & dev server |
 | Vanilla CSS | Design system with custom properties |
-| `serve` | Production static file server |
-| Railway | Cloud deployment platform |
 
 ## 📜 License
 
