@@ -1,0 +1,188 @@
+/* ── Usage Guide Styles ── */
+
+.usage-section {
+  padding: 0 var(--space-xl) var(--space-xl);
+}
+
+.usage-divider {
+  margin-bottom: var(--space-lg);
+}
+
+.usage-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ghost-4), transparent);
+}
+
+/* ── Grid ── */
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── Card ── */
+.usage-card {
+  position: relative;
+  background: var(--ghost-1);
+  border: 1px solid var(--ghost-3);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px 20px;
+  cursor: default;
+  overflow: hidden;
+  transition: all 0.35s var(--ease-out);
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.usage-card.usage-visible {
+  animation: fadeInUp 0.6s var(--ease-out) forwards;
+}
+
+.usage-card:hover {
+  border-color: rgba(124, 58, 237, 0.3);
+  background: var(--ghost-2);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(124, 58, 237, 0.1);
+}
+
+.usage-card-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(124, 58, 237, 0.06) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.usage-card:hover .usage-card-glow {
+  opacity: 1;
+}
+
+/* ── Step Badge ── */
+.usage-step-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--monarch-surface);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.usage-step-num {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--monarch-bright);
+  letter-spacing: 0.05em;
+}
+
+/* ── Icon ── */
+.usage-icon {
+  font-size: 28px;
+  margin-bottom: 14px;
+  display: inline-block;
+  transition: transform 0.3s var(--ease-spring);
+}
+
+.usage-card:hover .usage-icon {
+  transform: scale(1.15);
+}
+
+/* ── Content ── */
+.usage-title {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.usage-desc {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+
+/* ── Accent Tag ── */
+.usage-accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold-dim);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--gold);
+  letter-spacing: 0.03em;
+}
+
+.usage-accent-dot {
+  width: 4px;
+  height: 4px;
+  background: var(--gold);
+  border-radius: 50%;
+  box-shadow: 0 0 4px var(--gold);
+}
+
+/* ── Pro Tip Note ── */
+.usage-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: var(--space-lg);
+  padding: 16px 20px;
+  background: var(--cyan-surface);
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  border-left: 3px solid var(--cyan);
+  border-radius: var(--radius-md);
+}
+
+.usage-note-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.usage-note-text {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+
+.usage-note-text strong {
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .usage-section {
+    padding: 0 var(--space-md) var(--space-lg);
+  }
+
+  .usage-grid {
+    grid-template-columns: 1fr;
+  }
+}

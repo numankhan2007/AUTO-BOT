@@ -1,0 +1,141 @@
+/* ── Background Effects Styles ── */
+
+.matrix-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* ── Particle Field ── */
+.particle-field {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  animation: particle-float linear infinite;
+  background: var(--particle-color, var(--monarch));
+  box-shadow: 0 0 6px var(--particle-color, var(--monarch-glow));
+}
+
+@keyframes particle-float {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.5);
+  }
+  15% {
+    opacity: var(--particle-opacity, 0.4);
+    transform: translateY(10px) scale(1);
+  }
+  85% {
+    opacity: calc(var(--particle-opacity, 0.4) * 0.5);
+    transform: translateY(-80px) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) scale(0.3);
+  }
+}
+
+/* ── Scanlines ── */
+.scanlines-overlay {
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.025) 2px,
+    rgba(0, 0, 0, 0.025) 4px
+  );
+  pointer-events: none;
+  z-index: 998;
+}
+
+.scanline-beam {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 58, 237, 0.08) 20%,
+    rgba(124, 58, 237, 0.15) 50%,
+    rgba(124, 58, 237, 0.08) 80%,
+    transparent 100%
+  );
+  z-index: 998;
+  pointer-events: none;
+  animation: scanline-move 8s linear infinite;
+  opacity: 0.6;
+}
+
+/* ── Ambient Orbs ── */
+.ambient-orbs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.12;
+}
+
+.orb-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--monarch) 0%, transparent 70%);
+  top: -10%;
+  right: -5%;
+  animation: orb-drift-1 20s ease-in-out infinite;
+}
+
+.orb-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--cyan) 0%, transparent 70%);
+  bottom: -10%;
+  left: -5%;
+  animation: orb-drift-2 25s ease-in-out infinite;
+}
+
+.orb-3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--monarch-bright) 0%, transparent 70%);
+  top: 40%;
+  left: 30%;
+  animation: orb-drift-3 18s ease-in-out infinite;
+  opacity: 0.06;
+}
+
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(-40px, 30px); }
+  66% { transform: translate(30px, -20px); }
+}
+
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(30px, -40px); }
+  66% { transform: translate(-20px, 20px); }
+}
+
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, -30px) scale(1.2); }
+}

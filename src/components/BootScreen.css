@@ -1,0 +1,184 @@
+/* ── Boot Screen Styles ── */
+
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: var(--void);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  transition: opacity 0.6s var(--ease-out), filter 0.6s var(--ease-out);
+}
+
+.boot-screen.boot-fade-out {
+  opacity: 0;
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+/* ── Ambient Glow ── */
+.boot-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--monarch-glow) 0%, transparent 70%);
+  filter: blur(80px);
+  opacity: 0.4;
+  animation: boot-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes boot-glow-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.15); opacity: 0.5; }
+}
+
+/* ── Logo Section ── */
+.boot-logo-section {
+  text-align: center;
+  z-index: 1;
+}
+
+.boot-sword {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px var(--monarch-glow));
+}
+
+.boot-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 6vw, 64px);
+  font-weight: 900;
+  color: var(--monarch);
+  letter-spacing: 0.12em;
+  text-shadow:
+    0 0 40px var(--monarch-glow),
+    0 0 80px rgba(124, 58, 237, 0.2);
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.boot-version {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--cyan);
+  letter-spacing: 0.35em;
+  margin-top: 10px;
+  opacity: 0;
+  animation: fadeIn 0.5s ease 0.5s forwards;
+}
+
+/* ── Terminal ── */
+.boot-terminal {
+  width: min(500px, 90vw);
+  background: rgba(10, 15, 30, 0.8);
+  border: 1px solid var(--ghost-4);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  z-index: 1;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.boot-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--ghost-1);
+  border-bottom: 1px solid var(--ghost-2);
+}
+
+.boot-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.boot-dot-r { background: #ff5f57; }
+.boot-dot-y { background: #ffbd2e; }
+.boot-dot-g { background: #28c840; }
+
+.boot-terminal-title {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  margin-left: 8px;
+}
+
+.boot-terminal-body {
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  min-height: 200px;
+}
+
+.boot-line {
+  display: flex;
+  gap: 8px;
+  animation: fadeInUp 0.3s var(--ease-out) forwards;
+}
+
+.boot-line-prefix {
+  flex-shrink: 0;
+  width: 16px;
+}
+
+.boot-line-system .boot-line-text { color: var(--text-primary); font-weight: 600; }
+.boot-line-info .boot-line-text { color: var(--text-tertiary); }
+.boot-line-success .boot-line-text { color: var(--success); }
+.boot-line-monarch .boot-line-text {
+  color: var(--monarch-bright);
+  font-weight: 600;
+  text-shadow: 0 0 10px var(--monarch-glow);
+}
+.boot-line-final .boot-line-text {
+  color: var(--gold-bright);
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+.boot-cursor {
+  display: inline-block;
+  color: var(--monarch);
+  animation: blink 0.8s step-end infinite;
+  font-size: 14px;
+}
+
+/* ── Progress Bar ── */
+.boot-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 1;
+  width: min(400px, 80vw);
+}
+
+.boot-progress-track {
+  flex: 1;
+  height: 3px;
+  background: var(--ghost-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.boot-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--monarch), var(--cyan));
+  border-radius: var(--radius-full);
+  transition: width 0.3s var(--ease-out);
+  box-shadow: 0 0 12px var(--monarch-glow);
+}
+
+.boot-progress-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.1em;
+  min-width: 36px;
+}

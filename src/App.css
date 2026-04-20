@@ -1,0 +1,131 @@
+/* ── App Layout Styles ── */
+
+/* ── App Container ── */
+.app {
+  position: relative;
+  z-index: 5;
+  min-height: 100vh;
+  opacity: 0;
+  transition: opacity 1s var(--ease-out);
+}
+
+.app.app-visible {
+  opacity: 1;
+}
+
+/* ── Main Grid ── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: calc(100vh - 280px);
+  position: relative;
+}
+
+.content-area {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Copy Flash Overlay ── */
+.copy-flash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(124, 58, 237, 0.08);
+  pointer-events: none;
+  animation: flash-fade 0.3s ease forwards;
+}
+
+@keyframes flash-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Mobile Menu Button ── */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 100;
+  width: 44px;
+  height: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(10, 15, 30, 0.9);
+  border: 1px solid var(--ghost-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.hamburger-line {
+  width: 20px;
+  height: 2px;
+  background: var(--text-tertiary);
+  border-radius: var(--radius-full);
+  transition: all 0.2s;
+}
+
+.mobile-menu-btn:hover .hamburger-line {
+  background: var(--monarch-bright);
+}
+
+/* ── Toast notification for copy ── */
+.copy-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(10, 15, 30, 0.95);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: slideInRight 0.4s var(--ease-spring) forwards;
+}
+
+.copy-toast-icon {
+  font-size: 18px;
+}
+
+.copy-toast-text {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--success-bright);
+  letter-spacing: 0.05em;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-menu-btn {
+    top: 10px;
+    left: 10px;
+    width: 40px;
+    height: 40px;
+  }
+}
