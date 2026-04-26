@@ -1,10 +1,14 @@
 // ── Background Effects: Matrix Rain, Particles, Scan Lines ──
+// [FIXED: M-1] MatrixRain now scales for devicePixelRatio (Retina/HiDPI)
 
 import { useEffect, useRef, useMemo } from "react";
 import "./BackgroundEffects.css";
 
 /**
  * Matrix-style falling characters — runs on a <canvas>.
+ * [FIXED: M-1] Canvas resolution now accounts for devicePixelRatio.
+ * On Retina displays (2x, 3x), the canvas renders at native resolution
+ * and is CSS-scaled down, resulting in crisp characters instead of blur.
  */
 export function MatrixRain() {
   const canvasRef = useRef(null);
@@ -19,12 +23,20 @@ export function MatrixRain() {
     let drops;
 
     const chars = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン01";
+    const fontSize = 14;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const fontSize = 14;
-      columns = Math.floor(canvas.width / fontSize);
+      // [FIXED: M-1] Scale canvas for HiDPI/Retina displays
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;   // Native pixel width
+      canvas.height = window.innerHeight * dpr;  // Native pixel height
+      canvas.style.width = window.innerWidth + "px";   // CSS display width
+      canvas.style.height = window.innerHeight + "px"; // CSS display height
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset any existing transform
+      ctx.scale(dpr, dpr); // Scale drawing operations to match native res
+
+      // Column count based on CSS (logical) width, not canvas pixel width
+      columns = Math.floor(window.innerWidth / fontSize);
       drops = Array.from({ length: columns }, () => Math.random() * -100);
     };
 
@@ -32,15 +44,16 @@ export function MatrixRain() {
     window.addEventListener("resize", resize);
 
     const draw = () => {
+      // Use CSS dimensions for drawing (ctx.scale handles the rest)
       ctx.fillStyle = "rgba(0, 3, 8, 0.06)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
-      ctx.font = "14px monospace";
+      ctx.font = `${fontSize}px monospace`;
 
       for (let i = 0; i < drops.length; i++) {
         const char = chars[Math.floor(Math.random() * chars.length)];
-        const x = i * 14;
-        const y = drops[i] * 14;
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
 
         // Random color between monarch purple and dim
         const brightness = Math.random();
@@ -54,7 +67,7 @@ export function MatrixRain() {
 
         ctx.fillText(char, x, y);
 
-        if (y > canvas.height && Math.random() > 0.975) {
+        if (y > window.innerHeight && Math.random() > 0.975) {
           drops[i] = 0;
         }
         drops[i]++;

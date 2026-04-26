@@ -1,6 +1,7 @@
 // ── Header — Main title, badge, and stats ──
+// [FIXED: L-2] useCountUp wired to StatCard for animated numeric values.
 
-import { useInView } from "../hooks/useEffects";
+import { useInView, useCountUp } from "../hooks/useEffects";
 import { STATS } from "../data/prompt";
 import "./Header.css";
 
@@ -15,6 +16,16 @@ function GlitchText({ text, className = "" }) {
 function StatCard({ stat, index }) {
   const [ref, inView] = useInView();
 
+  // [FIXED: L-2] Parse numeric value for animation, leave non-numeric as static
+  const numericValue = parseInt(stat.value);
+  const isNumeric = !isNaN(numericValue) && /^\d+$/.test(stat.value.trim());
+
+  // [FIXED: L-2] useCountUp triggers on viewport entry via inView flag
+  const animatedCount = useCountUp(numericValue, 1500, inView && isNumeric);
+
+  // Display: animated number for pure digits, static string for "~2,400", "MAX", "5+", etc.
+  const displayValue = isNumeric ? animatedCount : stat.value;
+
   return (
     <div
       ref={ref}
@@ -25,7 +36,7 @@ function StatCard({ stat, index }) {
         <span className="stat-icon">{stat.icon}</span>
       </div>
       <div className="stat-info">
-        <div className="stat-value">{stat.value}</div>
+        <div className="stat-value">{displayValue}</div>
         <div className="stat-label">{stat.label}</div>
       </div>
       <div className="stat-detail">{stat.detail}</div>

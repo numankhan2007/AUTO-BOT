@@ -32,6 +32,9 @@ export function useInView(options = {}) {
 
 /**
  * Typewriter effect — reveals text character-by-character.
+ * [FIXED: H-2] Interval cleanup is now in the useEffect return,
+ * not inside the setTimeout callback. The `interval` variable is
+ * declared in the outer scope so the cleanup function can access it.
  */
 export function useTypewriter(text, speed = 40, startDelay = 0, enabled = true) {
   const [displayed, setDisplayed] = useState("");
@@ -42,9 +45,10 @@ export function useTypewriter(text, speed = 40, startDelay = 0, enabled = true) 
     setDisplayed("");
     setIsDone(false);
 
-    const startTimeout = setTimeout(() => {
+    let interval; // [FIXED: H-2] Declared in outer scope for cleanup access
+    const timeout = setTimeout(() => {
       let i = 0;
-      const interval = setInterval(() => {
+      interval = setInterval(() => { // [FIXED: H-2] Assigned in outer scope
         if (i < text.length) {
           setDisplayed(text.slice(0, i + 1));
           i++;
@@ -53,11 +57,13 @@ export function useTypewriter(text, speed = 40, startDelay = 0, enabled = true) 
           clearInterval(interval);
         }
       }, speed);
-
-      return () => clearInterval(interval);
     }, startDelay);
 
-    return () => clearTimeout(startTimeout);
+    // [FIXED: H-2] Both timeout AND interval are cleared on unmount
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [text, speed, startDelay, enabled]);
 
   return { displayed, isDone };
@@ -74,27 +80,28 @@ export function useCountUp(target, duration = 1500, enabled = true) {
 
     const num = parseInt(target);
     if (isNaN(num)) {
-      setCount(target);
+      setCount(target); // Non-numeric values pass through as-is
       return;
     }
 
-    let start = 0;
     const startTime = Date.now();
+    let animId;
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // easeOutExpo
+      // easeOutExpo — fast start, smooth deceleration
       const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
       const current = Math.round(eased * num);
       setCount(current);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        animId = requestAnimationFrame(animate);
       }
     };
 
-    requestAnimationFrame(animate);
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId); // [FIXED: L-2] Proper cleanup
   }, [target, duration, enabled]);
 
   return count;
@@ -121,14 +128,16 @@ export function useMouseGlow() {
 
 /**
  * Keyboard shortcut hook.
+ * [FIXED: H-3] Destructured modifiers into primitive deps (ctrl, shift, alt)
+ * instead of using the object reference. This prevents the effect from
+ * re-registering the event listener on every render cycle.
  */
-export function useKeyboardShortcut(key, callback, modifiers = {}) {
+export function useKeyboardShortcut(key, callback, { ctrl = false, shift = false, alt = false } = {}) {
   useEffect(() => {
     const handler = (e) => {
-      const { ctrl = false, shift = false, alt = false } = modifiers;
       if (
         e.key.toLowerCase() === key.toLowerCase() &&
-        e.ctrlKey === ctrl &&
+        e.ctrlKey === ctrl && // [FIXED: H-3] Primitive boolean comparison
         e.shiftKey === shift &&
         e.altKey === alt
       ) {
@@ -139,5 +148,5 @@ export function useKeyboardShortcut(key, callback, modifiers = {}) {
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [key, callback, modifiers]);
+  }, [key, callback, ctrl, shift, alt]); // [FIXED: H-3] All primitive deps
 }
