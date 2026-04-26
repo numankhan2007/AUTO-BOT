@@ -27,6 +27,10 @@ env/
 # Secrets & Environment
 .env*
 !.env.example
+.dev.vars
+
+# Cloudflare Worker
+.wrangler/
 
 # Logs
 logs/

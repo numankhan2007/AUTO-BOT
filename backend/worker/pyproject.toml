@@ -1,0 +1,10 @@
+[project]
+name = "shadow-bot"
+version = "3.0.0"
+description = "Shadow System Instagram Bot — Cloudflare Worker"
+requires-python = ">= 3.12"
+
+# No external dependencies needed — the Worker uses:
+#   - js.fetch (built-in FFI to Workers fetch API)
+#   - workers (built-in WorkerEntrypoint/Response)
+#   - json, hmac, hashlib, urllib.parse (Python stdlib)

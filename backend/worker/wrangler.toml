@@ -1,0 +1,28 @@
+# ── wrangler.toml — Shadow System Worker Configuration ──
+# Deploy with: uvx --from workers-py pywrangler deploy
+
+name = "shadow-bot"
+main = "main.py"
+compatibility_date = "2026-04-26"
+compatibility_flags = ["python_workers"]
+
+# ── Observability (enables stored/searchable logs in dashboard) ──
+[observability]
+enabled = true
+
+# ── Route Configuration ──
+# After deploying, your worker will be at:
+#   https://shadow-bot.<your-subdomain>.workers.dev
+#
+# To use a custom domain or route, uncomment and configure:
+# routes = [
+#   { pattern = "bot.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]
+
+# ── Secrets (set via CLI, NOT here) ──
+# npx wrangler secret put GEMINI_KEY
+# npx wrangler secret put INSTA_TOKEN
+# npx wrangler secret put APP_SECRET
+# npx wrangler secret put VERIFY_TOKEN
+# npx wrangler secret put INSTAGRAM_ACCOUNT_ID
+# npx wrangler secret put BOT_USERNAME
