@@ -4,7 +4,7 @@
 name = "auto-bot-01"                           # Must match the deployed Worker name in Cloudflare Dashboard
 main = "main.py"
 compatibility_date = "2026-04-26"
-compatibility_flags = ["python_workers"]
+compatibility_flags = ["python_workers", "disable_python_external_sdk"]
 
 # ── Static Assets (React Frontend) ──
 # Serves the built Vite output from frontend/dist/.
