@@ -287,8 +287,11 @@ class Default(WorkerEntrypoint):
         if path == "/webhook" and method == "POST":
             return await self._handle_webhook(request)
 
-        # ── 404 ──
-        return Response("Not Found", status=404)
+        # ── Serve React Frontend (Static Assets) ──
+        # Forward all non-API requests to Cloudflare's asset server.
+        # This serves the built React frontend from frontend/dist/.
+        # ASSETS binding is configured in wrangler.toml [assets] section.
+        return await self.env.ASSETS.fetch(request)
 
     async def _handle_verification(self, query_string: str):
         """Handle Meta's GET webhook verification challenge."""
