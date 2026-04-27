@@ -1,4 +1,5 @@
 # ── main.py — Shadow System Cloudflare Python Worker ──
+# Build trigger: 2026-04-27T22:55 IST — removed unused @cloudflare/vite-plugin
 # Cloudflare Workers-compatible version of the Instagram webhook bot.
 #
 # Key differences from FastAPI version:
