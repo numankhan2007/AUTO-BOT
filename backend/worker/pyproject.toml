@@ -8,7 +8,7 @@ requires-python = ">= 3.13"
 # that pywrangler bundles into the deployed Worker.
 # js.fetch, json, hmac, hashlib, urllib.parse are Python stdlib / FFI built-ins.
 dependencies = [
-    "workers-py>=1.90.0",
+    "workers-py>=1.9.0",
 ]
 
 [dependency-groups]
