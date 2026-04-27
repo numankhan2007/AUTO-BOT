@@ -1,10 +1,11 @@
 # ── wrangler.toml — Shadow System Worker Configuration ──
 # Deploy with: cd backend/worker && uv run pywrangler deploy
+# Do NOT use `npx wrangler deploy` — it cannot bundle Python dependencies.
 
 name = "auto-bot-01"                           # Must match the deployed Worker name in Cloudflare Dashboard
 main = "main.py"
 compatibility_date = "2026-04-27"
-compatibility_flags = ["python_workers", "disable_python_external_sdk"]
+compatibility_flags = ["python_workers"]
 
 # ── Static Assets (React Frontend) ──
 # Serves the built Vite output from frontend/dist/.

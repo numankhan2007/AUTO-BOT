@@ -1,12 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-import { cloudflare } from "@cloudflare/vite-plugin";
-
 // https://vite.dev/config/
+// NOTE: Do NOT use @cloudflare/vite-plugin here.
+// That plugin is for full-stack Vite+Workers setups. Our Worker (main.py)
+// is deployed separately via pywrangler. Vite just builds static assets.
 // [FIXED: L-4] Build optimizations with chunk splitting
 export default defineConfig({
-  plugins: [react(), cloudflare()],
+  plugins: [react()],
   build: {
     // [FIXED: L-4] Raise warning limit for canvas+animation bundles
     chunkSizeWarningLimit: 600,

@@ -4,14 +4,14 @@ version = "3.0.0"
 description = "Shadow System Instagram Bot — Cloudflare Python Worker"
 requires-python = ">= 3.13"
 
-# No external runtime dependencies — the Worker uses:
-#   - Built-in `workers` module (via disable_python_external_sdk flag)
-#   - js.fetch (built-in FFI to Workers fetch API)
-#   - json, hmac, hashlib, urllib.parse (Python stdlib)
-dependencies = []
+# Runtime dependency — workers-py provides the `workers` module
+# that pywrangler bundles into the deployed Worker.
+# js.fetch, json, hmac, hashlib, urllib.parse are Python stdlib / FFI built-ins.
+dependencies = [
+    "workers-py>=1.90.0",
+]
 
 [dependency-groups]
 dev = [
-    "workers-py",
     "workers-runtime-sdk",
 ]
