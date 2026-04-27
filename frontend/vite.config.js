@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // https://vite.dev/config/
 // [FIXED: L-4] Build optimizations with chunk splitting
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), cloudflare()],
   build: {
     // [FIXED: L-4] Raise warning limit for canvas+animation bundles
     chunkSizeWarningLimit: 600,
