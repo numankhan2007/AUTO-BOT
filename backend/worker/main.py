@@ -4,6 +4,7 @@
 # Key differences from FastAPI version:
 #   - Uses WorkerEntrypoint instead of FastAPI
 #   - Uses fetch() from js module instead of httpx
+#   - JS imports are LAZY (inside functions) to avoid snapshot serialization errors
 #   - Calls Gemini REST API directly (SDK not compatible with Pyodide)
 #   - Secrets accessed via self.env instead of dotenv
 #   - No fire-and-forget tasks — all processing is inline
@@ -15,8 +16,12 @@ import hashlib
 import urllib.parse
 from urllib.parse import parse_qs, urlparse
 
-from js import fetch, Headers, Response as JsResponse
 from workers import WorkerEntrypoint, Response
+
+# NOTE: `from js import fetch, Headers` is intentionally NOT at module level.
+# The 2026 Pyodide/3.13 runtime creates a memory snapshot at deploy time.
+# JS proxy objects (JsProxy) cannot be serialized into this snapshot.
+# Instead, we import them lazily inside each async function that needs them.
 
 
 # ── Shadow System Persona ──
@@ -182,11 +187,13 @@ def generate_image_url(prompt: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════
-# API Callers (using JS fetch via FFI)
+# API Callers (using JS fetch via FFI — LAZY IMPORTS)
 # ═══════════════════════════════════════════════════════════════
 
 async def call_gemini(user_text: str, api_key: str) -> str:
     """Call Gemini REST API directly (SDK not compatible with Pyodide)."""
+    from js import fetch, Headers  # Lazy import — avoids snapshot serialization
+
     url = f"{GEMINI_API_URL}?key={api_key}"
     body = json.dumps({
         "system_instruction": {
@@ -220,6 +227,8 @@ async def call_gemini(user_text: str, api_key: str) -> str:
 
 async def send_meta_message(thread_id: str, message_payload: dict, access_token: str):
     """Send a message to Instagram via Meta Graph API."""
+    from js import fetch, Headers  # Lazy import — avoids snapshot serialization
+
     url = f"{GRAPH_API_BASE}/me/messages"
     body = json.dumps({
         "recipient": {"thread_key": thread_id},
@@ -307,6 +316,8 @@ class Default(WorkerEntrypoint):
 
     async def _handle_webhook(self, request):
         """Handle Meta's POST webhook events."""
+        from js import console  # Lazy import — Workers logging via JS console
+
         # Read raw body for signature verification
         body_text = await request.text()
         body_bytes = body_text.encode("utf-8")
@@ -331,8 +342,8 @@ class Default(WorkerEntrypoint):
         for event in parse_member_added_events(payload):
             try:
                 await send_welcome(event["thread_id"], access_token)
-            except Exception:
-                pass  # Log in production — Workers have console.log via js module
+            except Exception as e:
+                console.error(f"[Shadow System] Welcome failed: {e}")
 
         # ── Process AI commands ──
         messages = parse_message_events(payload, bot_account_id)
@@ -348,7 +359,7 @@ class Default(WorkerEntrypoint):
                 elif cmd["type"] == "imagine":
                     img_url = generate_image_url(cmd["text"])
                     await send_image_message(cmd["thread_id"], img_url, access_token)
-            except Exception:
-                pass  # Silently continue — don't crash the webhook response
+            except Exception as e:
+                console.error(f"[Shadow System] Command '{cmd['type']}' failed: {e}")
 
         return Response.json({"status": "ok"})
