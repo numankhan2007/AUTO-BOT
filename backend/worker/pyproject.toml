@@ -5,11 +5,10 @@ description = "Shadow System Instagram Bot — Cloudflare Python Worker"
 requires-python = ">= 3.13"
 
 # No external runtime dependencies — the Worker uses:
+#   - Built-in `workers` module (via disable_python_external_sdk flag)
 #   - js.fetch (built-in FFI to Workers fetch API)
 #   - json, hmac, hashlib, urllib.parse (Python stdlib)
-dependencies = [
-    "workers-py>=1.9.0",
-]
+dependencies = []
 
 [dependency-groups]
 dev = [
