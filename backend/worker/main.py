@@ -420,25 +420,26 @@ class Default(WorkerEntrypoint):
         from js import console  # Lazy import — Workers logging via JS console
 
         # ── Validate required env bindings ──
+        # Log which secrets are present/missing for diagnostics
+        required_secrets = [
+            "APP_SECRET", "INSTA_TOKEN", "BOT_USERNAME",
+            "INSTAGRAM_ACCOUNT_ID", "GEMINI_KEY",
+        ]
+        missing = [s for s in required_secrets if getattr(self.env, s, None) is None]
+        if missing:
+            console.error(f"[Shadow System] FATAL: Missing secrets: {', '.join(missing)}")
+            return _error_response(
+                f"Missing secrets in Dashboard: {', '.join(missing)}",
+                status=503,
+            )
+
         app_secret = getattr(self.env, "APP_SECRET", None)
-        if app_secret is None:
-            return _error_response("Missing APP_SECRET in Dashboard", status=503)
-
         insta_token = getattr(self.env, "INSTA_TOKEN", None)
-        if insta_token is None:
-            return _error_response("Missing INSTA_TOKEN in Dashboard", status=503)
-
         bot_username = getattr(self.env, "BOT_USERNAME", None)
-        if bot_username is None:
-            return _error_response("Missing BOT_USERNAME in Dashboard", status=503)
-
         bot_account_id = getattr(self.env, "INSTAGRAM_ACCOUNT_ID", None)
-        if bot_account_id is None:
-            return _error_response("Missing INSTAGRAM_ACCOUNT_ID in Dashboard", status=503)
-
         gemini_key = getattr(self.env, "GEMINI_KEY", None)
-        if gemini_key is None:
-            return _error_response("Missing GEMINI_KEY in Dashboard", status=503)
+
+        console.log("[Shadow System] All secrets present. Processing webhook...")
 
         # ── Read raw body for signature verification ──
         body_text = await request.text()
