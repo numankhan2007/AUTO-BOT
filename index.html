@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — Shadow System</title>
+    <meta name="description" content="Privacy Policy for the Shadow System Instagram Messaging Bot. Learn how we handle your data.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a26;
+            --border: #1e1e2e;
+            --text-primary: #e8e8ed;
+            --text-secondary: #8b8ba0;
+            --text-muted: #5a5a72;
+            --accent: #7c5cfc;
+            --accent-glow: rgba(124, 92, 252, 0.15);
+            --accent-secondary: #a78bfa;
+            --success: #34d399;
+            --warning: #fbbf24;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Ambient Background ── */
+        .ambient {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .ambient::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            left: -20%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(ellipse, rgba(124, 92, 252, 0.06) 0%, transparent 70%);
+            animation: drift 20s ease-in-out infinite;
+        }
+
+        .ambient::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            right: -20%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(ellipse, rgba(167, 139, 250, 0.04) 0%, transparent 70%);
+            animation: drift 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(40px, -30px); }
+        }
+
+        /* ── Layout ── */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* ── Header ── */
+        header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .logo-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.8rem;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .effective-date {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 2.5rem;
+            padding: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            transition: border-color 0.3s ease, background 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(124, 92, 252, 0.2);
+            background: var(--bg-card-hover);
+        }
+
+        .section-number {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-glow);
+            padding: 0.25rem 0.7rem;
+            border-radius: 20px;
+            margin-bottom: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h2 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            letter-spacing: -0.01em;
+        }
+
+        p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        p:last-child {
+            margin-bottom: 0;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0.8rem 0;
+        }
+
+        ul li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.6rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        ul li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.6rem;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ── Highlight Box ── */
+        .highlight {
+            background: var(--accent-glow);
+            border-left: 3px solid var(--accent);
+            padding: 1rem 1.2rem;
+            border-radius: 0 10px 10px 0;
+            margin: 1rem 0;
+        }
+
+        .highlight p {
+            color: var(--text-primary);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* ── Summary Banner ── */
+        .summary-banner {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(124, 92, 252, 0.08));
+            border: 1px solid rgba(52, 211, 153, 0.15);
+            border-radius: 16px;
+            margin-bottom: 2.5rem;
+            align-items: flex-start;
+        }
+
+        .summary-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        .summary-banner h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--success);
+            margin-bottom: 0.3rem;
+        }
+
+        .summary-banner p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 2.5rem 0 1rem;
+            border-top: 1px solid var(--border);
+            margin-top: 1rem;
+        }
+
+        footer p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-secondary);
+        }
+
+        a {
+            color: var(--accent-secondary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--accent);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .container { padding: 1rem 1rem 3rem; }
+            h1 { font-size: 1.8rem; }
+            .section { padding: 1.5rem; }
+            header { padding: 2rem 0 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚔️</div>
+                <span class="logo-text">Shadow System</span>
+            </div>
+            <h1>Privacy Policy</h1>
+            <p class="effective-date">Effective Date: April 28, 2026 · Last Updated: April 28, 2026</p>
+        </header>
+
+        <!-- Quick Summary -->
+        <div class="summary-banner">
+            <div class="summary-icon">🛡️</div>
+            <div>
+                <h3>Quick Summary</h3>
+                <p>Shadow System is an Instagram messaging bot. We only process messages to respond in group chats. We do <strong>not</strong> store, sell, or share your personal data with any third parties.</p>
+            </div>
+        </div>
+
+        <!-- Section 1 -->
+        <div class="section">
+            <span class="section-number">Section 1</span>
+            <h2>Introduction</h2>
+            <p>Shadow System ("we", "us", "our") operates as an automated messaging bot on the Instagram platform via the Meta Messenger API. This Privacy Policy explains how we collect, use, and protect information when you interact with Shadow System in Instagram group chats.</p>
+            <p>By interacting with Shadow System, you agree to the practices described in this policy.</p>
+        </div>
+
+        <!-- Section 2 -->
+        <div class="section">
+            <span class="section-number">Section 2</span>
+            <h2>Information We Process</h2>
+            <p>When you send a message in a group chat where Shadow System is present, we may process the following data <strong>solely to generate a response</strong>:</p>
+            <ul>
+                <li><strong>Message content</strong> — The text of messages directed at the bot (via @mention or /ask commands).</li>
+                <li><strong>Sender identifier</strong> — Your Instagram-provided user ID (used only to route the reply to the correct thread).</li>
+                <li><strong>Thread identifier</strong> — The group chat ID where the interaction occurs.</li>
+            </ul>
+            <div class="highlight">
+                <p>We do <strong>not</strong> collect your name, email, profile picture, follower list, or any data beyond what is needed to reply to your message.</p>
+            </div>
+        </div>
+
+        <!-- Section 3 -->
+        <div class="section">
+            <span class="section-number">Section 3</span>
+            <h2>How We Use Your Information</h2>
+            <p>All processed information is used exclusively for the following purposes:</p>
+            <ul>
+                <li><strong>Responding to messages</strong> — Your message text is forwarded to a language model (Google Gemini) to generate a contextual reply, which is then sent back to the group chat.</li>
+                <li><strong>Image generation</strong> — If you use the <code>/imagine</code> command, your prompt text is sent to an image generation service to create and return an image.</li>
+                <li><strong>Welcome messages</strong> — When new members join a group, an automated welcome message is posted.</li>
+            </ul>
+        </div>
+
+        <!-- Section 4 -->
+        <div class="section">
+            <span class="section-number">Section 4</span>
+            <h2>Data Storage & Retention</h2>
+            <div class="highlight">
+                <p>Shadow System does <strong>not</strong> store any message content, user data, or conversation history.</p>
+            </div>
+            <p>All message processing happens in real-time within a serverless Cloudflare Worker. Once a response is generated and delivered, the message data is immediately discarded. No databases, logs, or persistent storage of user content are maintained.</p>
+        </div>
+
+        <!-- Section 5 -->
+        <div class="section">
+            <span class="section-number">Section 5</span>
+            <h2>Data Sharing & Third Parties</h2>
+            <p><strong>We do not sell, rent, trade, or share your personal data with any third parties.</strong></p>
+            <p>The only external services that process data during a request are:</p>
+            <ul>
+                <li><strong>Meta (Instagram) API</strong> — To receive and send messages within the Instagram platform.</li>
+                <li><strong>Google Gemini API</strong> — To generate AI-powered text responses. Google's API usage policies apply to data sent for processing.</li>
+                <li><strong>Pollinations.ai</strong> — To generate images from text prompts when the <code>/imagine</code> command is used.</li>
+                <li><strong>Cloudflare</strong> — Our hosting infrastructure provider. No user data is stored on Cloudflare beyond the duration of a single request.</li>
+            </ul>
+            <p>Each of these services processes data only for the duration of the request and in accordance with their own privacy policies.</p>
+        </div>
+
+        <!-- Section 6 -->
+        <div class="section">
+            <span class="section-number">Section 6</span>
+            <h2>Data Security</h2>
+            <p>We implement the following security measures:</p>
+            <ul>
+                <li>All communication is encrypted via <strong>HTTPS/TLS 1.3</strong>.</li>
+                <li>Webhook payloads from Meta are verified using <strong>HMAC-SHA256 signature validation</strong>.</li>
+                <li>API keys and secrets are stored securely as encrypted environment variables, never in source code.</li>
+                <li>The bot runs on Cloudflare's serverless infrastructure with <strong>zero persistent state</strong>.</li>
+            </ul>
+        </div>
+
+        <!-- Section 7 -->
+        <div class="section">
+            <span class="section-number">Section 7</span>
+            <h2>Children's Privacy</h2>
+            <p>Shadow System does not knowingly collect or process data from children under the age of 13. If you believe a child has interacted with our service, please contact us so we can take appropriate action.</p>
+        </div>
+
+        <!-- Section 8 -->
+        <div class="section">
+            <span class="section-number">Section 8</span>
+            <h2>Your Rights</h2>
+            <p>Since we do not store any personal data, there is no user data to access, modify, or delete. However, you have the right to:</p>
+            <ul>
+                <li><strong>Stop interaction</strong> — Simply stop mentioning or sending commands to the bot.</li>
+                <li><strong>Remove the bot</strong> — Group administrators can remove Shadow System from any group chat at any time.</li>
+                <li><strong>Request information</strong> — Contact us if you have questions about how your data is processed.</li>
+            </ul>
+        </div>
+
+        <!-- Section 9 -->
+        <div class="section">
+            <span class="section-number">Section 9</span>
+            <h2>Changes to This Policy</h2>
+            <p>We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated "Last Updated" date. Continued interaction with Shadow System after changes constitutes acceptance of the revised policy.</p>
+        </div>
+
+        <!-- Section 10 -->
+        <div class="section">
+            <span class="section-number">Section 10</span>
+            <h2>Contact Us</h2>
+            <p>If you have any questions or concerns about this Privacy Policy or your interactions with Shadow System, you can reach us at:</p>
+            <ul>
+                <li><strong>GitHub</strong> — <a href="https://github.com/numankhan2007" target="_blank" rel="noopener">github.com/numankhan2007</a></li>
+                <li><strong>Instagram</strong> — <a href="https://instagram.com/__shadow_system__" target="_blank" rel="noopener">@__shadow_system__</a></li>
+            </ul>
+        </div>
+
+        <footer>
+            <div class="footer-links">
+                <a href="https://shadow-system.m-numankhan2007.workers.dev" target="_blank" rel="noopener">Shadow System</a>
+                <a href="https://github.com/numankhan2007/AUTO-BOT" target="_blank" rel="noopener">GitHub</a>
+            </div>
+            <p>&copy; 2026 Shadow System. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
