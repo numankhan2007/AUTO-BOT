@@ -21,3 +21,9 @@ directory = "../../frontend/dist"
 #   INSTA_TOKEN
 #   INSTAGRAM_ACCOUNT_ID
 #   VERIFY_TOKEN
+
+# ── Observability (Logs & Traces) ──
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
