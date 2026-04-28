@@ -37,32 +37,32 @@ from workers import WorkerEntrypoint
 
 def _text_response(body="", status=200, content_type="text/plain"):
     """Return a plain-text JS Response. Safe to call anywhere."""
+    # Force body to string AND use list-of-lists for headers.
+    # This is the most "Sequence-friendly" format for Pyodide —
+    # avoids the TypeError that causes Error 1101.
     try:
-        return Response.new(
-            str(body),
-            {"status": int(status), "headers": {"Content-Type": str(content_type)}},
-        )
+        safe_body = str(body) if body is not None else ""
+        headers = [["Content-Type", str(content_type)]]
+        return Response.new(safe_body, {"status": int(status), "headers": headers})
     except Exception:
         # Absolute last resort — bare Response with no options
-        return Response.new(str(body))
+        return Response.new(str(body) if body is not None else "")
 
 
 def _json_response(data=None, status=200):
     """Return a JSON JS Response. Safe to call anywhere."""
     try:
         json_str = json.dumps(data if data is not None else {})
-        return Response.new(
-            json_str,
-            {"status": int(status), "headers": {"Content-Type": "application/json"}},
-        )
+        headers = [["Content-Type", "application/json"]]
+        return Response.new(json_str, {"status": int(status), "headers": headers})
     except Exception:
-        return Response.new(str(data))
+        return Response.new(str(data) if data is not None else "{}")
 
 
 def _error_response(message="Unknown error", status=500):
     """Return a Shadow System debug error response. Never crashes."""
-    safe_msg = str(message)
-    return _text_response(f"Shadow System Debug: {safe_msg}", status=int(status))
+    # Ensure we aren't passing a None object to the text helper
+    return _text_response(f"Shadow System Debug: {str(message)}", status=int(status))
 
 
 # ═══════════════════════════════════════════════════════════════

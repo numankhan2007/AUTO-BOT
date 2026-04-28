@@ -11,6 +11,7 @@ compatibility_flags = ["python_workers"]
 # Path is relative to THIS file (backend/worker/wrangler.toml).
 [assets]
 directory = "../../frontend/dist"
+binding = "ASSETS"
 
 # ── Environment Variables & Secrets ──
 # Set secrets via: npx wrangler secret put <KEY_NAME>
