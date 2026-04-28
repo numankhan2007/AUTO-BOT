@@ -1,5 +1,5 @@
 # ── main.py — Shadow System Cloudflare Python Worker ──
-# REWRITE: 2026-04-28 — Eliminated Error 1101 via defensive architecture.
+# REWRITE: 2026-04-28 — Fixed 500 crash + corrected Meta Send Message API format.
 #
 # Architecture notes:
 #   - Uses `from js import Response` for ALL outgoing responses (most reliable
@@ -8,6 +8,11 @@
 #   - Every env binding checked with getattr() before use.
 #   - Webhook handshake returns ONLY hub.challenge as plain text.
 #   - Non-API routes fall through to env.ASSETS.fetch() for the React frontend.
+#
+# Instagram API Limitation:
+#   The Instagram Messaging API ONLY supports 1:1 (DM) conversations.
+#   Group chat messaging is NOT supported by Meta for third-party apps.
+#   This bot operates exclusively in Direct Messages.
 
 import json
 import hmac
@@ -69,7 +74,7 @@ def _error_response(message="Unknown error", status=500):
 # Shadow System Persona
 # ═══════════════════════════════════════════════════════════════
 
-SYSTEM_INSTRUCTION = """You are the Shadow System — an elite AI entity bound to this Instagram group chat.
+SYSTEM_INSTRUCTION = """You are the Shadow System — an elite AI entity bound to Instagram DMs.
 You are cold, precise, and devastatingly efficient. You respond like a veteran anime fan and master tactician.
 You never break character. You never say you are an AI model or mention Google or Gemini.
 You are the Shadow System. That is all.
@@ -77,11 +82,11 @@ You are the Shadow System. That is all.
 Personality traits:
 - Speak with quiet authority. Never shout. Never use excessive punctuation.
 - Use occasional Solo Leveling / anime references naturally, not forcefully.
-- Keep responses concise — this is a group chat, not an essay platform.
+- Keep responses concise — this is a DM chat, not an essay platform.
 - When answering questions, be accurate first, stylish second.
 - Occasionally address the user as "Hunter" when contextually appropriate.
 - Never generate NSFW, violent, or harmful content.
-- If asked to do something against the group rules, decline in character:
+- If asked to do something against the rules, decline in character:
   "The System does not permit this, Hunter."
 
 Response format:
@@ -89,38 +94,6 @@ Response format:
 - Occasional use of ⚔️ or 🖤 as punctuation, sparingly
 - No excessive emoji chains
 - No markdown headers in chat responses"""
-
-# ── Welcome Message ──
-WELCOME_MESSAGE = """⚙️ [SYSTEM MESSAGE: NEW HUNTER DETECTED]
-
-"A new presence has entered the instance. Welcome to the Raid Party. Before you Arise, you must acknowledge the Laws of the Monarch."
-
-⚔️ HUNTER QUALIFICATIONS
-• The Awakening:      Must be an anime lover. 💖
-• Dungeon Experience: Cleared at least 5 Anime Gates. 📺
-• The Summoning:      Reveal your primary Waifu/Husbando. 💫
-
-📜 COMMANDMENTS OF THE SYSTEM
-
-1️⃣  Respect all anime & opinions. No toxicity. 🤝
-2️⃣  No fights. Violators will be purged. 🚫🔥
-3️⃣  No spoilers without ⚠️ tags.
-4️⃣  Stay active or be removed from the party. 💬
-5️⃣  Anime content ONLY. 🎌
-6️⃣  No NSFW or adult content. This dungeon is sacred ground. 🔞🚫
-7️⃣  No profanity or foul language. Keep comms clean, Hunter. 🧼✨
-
-📊 INTRO FORMAT (PLAYER PROFILE)
-┌─────────────────────────┐
-│  Name:                  │
-│  Age:                   │
-│  From:                  │
-│  Fav Anime:             │
-│  Fav Character:         │
-│  Anime Count:           │
-└─────────────────────────┘
-
-[SYSTEM] — Arise, Hunter. The Shadow Army awaits. 🖤⚔️"""
 
 GRAPH_API_BASE = "https://graph.facebook.com/v19.0"
 POLLINATIONS_BASE_URL = "https://image.pollinations.ai"
@@ -131,94 +104,120 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini
 # Helper Functions
 # ═══════════════════════════════════════════════════════════════
 
+def _safe_str(value, default=""):
+    """Safely convert a JsProxy or any value to a Python string.
+
+    Pyodide's request.headers.get() returns JsProxy objects, not Python strings.
+    Calling Python string methods on them (like .startswith()) can crash.
+    This function ensures we always have a real Python str.
+    """
+    if value is None:
+        return default
+    try:
+        return str(value)
+    except Exception:
+        return default
+
+
 def verify_signature(payload: bytes, signature: str, app_secret: str) -> bool:
     """Verify HMAC-SHA256 signature from Meta's X-Hub-Signature-256 header."""
-    if not signature or not signature.startswith("sha256="):
+    sig = _safe_str(signature)
+    if not sig or not sig.startswith("sha256="):
         return False
     expected = hmac.new(
         key=app_secret.encode("utf-8"),
         msg=payload,
         digestmod=hashlib.sha256,
     ).hexdigest()
-    return hmac.compare_digest(expected, signature[7:])
-
-
-def parse_member_added_events(payload: dict) -> list:
-    """Extract member_added events from Meta webhook payload."""
-    results = []
-    for entry in payload.get("entry", []):
-        for msg in entry.get("messaging", []):
-            if msg.get("event") == "member_added":
-                thread_id = msg.get("thread_id")
-                member_ids = [m.get("id") for m in msg.get("members", []) if m.get("id")]
-                if thread_id and member_ids:
-                    results.append({"thread_id": thread_id, "member_ids": member_ids})
-        for change in entry.get("changes", []):
-            value = change.get("value", {})
-            if value.get("event") == "member_added":
-                thread_id = value.get("thread_id")
-                member_ids = [m.get("id") for m in value.get("members", []) if m.get("id")]
-                if thread_id and member_ids:
-                    results.append({"thread_id": thread_id, "member_ids": member_ids})
-    return results
+    return hmac.compare_digest(expected, sig[7:])
 
 
 def parse_message_events(payload: dict, bot_account_id: str) -> list:
-    """Extract text messages, filtering out bot's own messages."""
+    """Extract text messages from webhook payload, filtering out bot's own messages.
+
+    Handles the standard Instagram webhook format:
+    {
+        "object": "instagram",
+        "entry": [{
+            "id": "IGID",
+            "messaging": [{
+                "sender": {"id": "IGSID"},
+                "recipient": {"id": "IGID"},
+                "message": {"mid": "...", "text": "..."}
+            }]
+        }]
+    }
+    """
     results = []
     for entry in payload.get("entry", []):
         for msg in entry.get("messaging", []):
             message_obj = msg.get("message")
             if message_obj is None:
                 continue
+
+            # Skip echo messages (messages sent BY the bot itself)
+            if message_obj.get("is_echo"):
+                continue
+
             text = message_obj.get("text")
-            if not text or not text.strip():
+            if not text or not str(text).strip():
                 continue
-            sender_id = msg.get("sender", {}).get("id", "")
-            thread_id = msg.get("thread_id", "") or msg.get("recipient", {}).get("id", "")
-            if not sender_id or not thread_id:
+
+            sender_id = _safe_str(msg.get("sender", {}).get("id", ""))
+            recipient_id = _safe_str(msg.get("recipient", {}).get("id", ""))
+
+            if not sender_id:
                 continue
-            if sender_id == bot_account_id:
+
+            # Skip if the sender IS the bot (double-check)
+            if sender_id == str(bot_account_id):
                 continue
+
             results.append({
                 "sender_id": sender_id,
-                "thread_id": thread_id,
-                "text": text.strip(),
+                "recipient_id": recipient_id,
+                "text": str(text).strip(),
+                "mid": _safe_str(message_obj.get("mid", "")),
             })
     return results
 
 
-def detect_command(message: dict, bot_username: str) -> dict:
-    """Classify a message as mention/ask/imagine/none."""
+def detect_command(message: dict) -> dict:
+    """Classify a DM message as imagine/ask/chat.
+
+    In DMs (1:1), every message triggers a response.
+    - /imagine <prompt> → generate image
+    - /ask <question> → explicit Gemini query (same as chat, but explicit)
+    - anything else → chat with Gemini AI
+
+    No @mention detection needed in DMs since it's always 1:1.
+    """
     text = message["text"]
     base = {
         "sender_id": message["sender_id"],
-        "thread_id": message["thread_id"],
+        "mid": message.get("mid", ""),
     }
 
-    # @mention
-    mention_prefix = f"@{bot_username}"
-    if text.lower().startswith(mention_prefix.lower()):
-        remaining = text[len(mention_prefix):].strip()
-        if remaining:
-            return {**base, "type": "mention", "text": remaining}
-        return {**base, "type": "none", "text": ""}
-
-    # /ask
-    if text.lower().startswith("/ask "):
-        remaining = text[5:].strip()
-        if remaining:
-            return {**base, "type": "ask", "text": remaining}
-        return {**base, "type": "none", "text": ""}
-
-    # /imagine
+    # /imagine — generate an image
     if text.lower().startswith("/imagine "):
         remaining = text[9:].strip()
         if remaining:
             return {**base, "type": "imagine", "text": remaining}
-        return {**base, "type": "none", "text": ""}
+        return {**base, "type": "chat", "text": "What image would you like me to create, Hunter?"}
 
-    return {**base, "type": "none", "text": ""}
+    # /ask — explicit question (functionally same as chat)
+    if text.lower().startswith("/ask "):
+        remaining = text[5:].strip()
+        if remaining:
+            return {**base, "type": "chat", "text": remaining}
+        return {**base, "type": "chat", "text": "Ask me anything, Hunter."}
+
+    # /help — show available commands
+    if text.lower().strip() in ("/help", "/commands", "/start"):
+        return {**base, "type": "help", "text": ""}
+
+    # Default: chat with Gemini AI — EVERY DM gets a response
+    return {**base, "type": "chat", "text": text}
 
 
 def generate_image_url(prompt: str) -> str:
@@ -228,6 +227,17 @@ def generate_image_url(prompt: str) -> str:
         f"{POLLINATIONS_BASE_URL}/prompt/{encoded}"
         f"?width=1024&height=1024&model=flux&nologo=true&enhance=true"
     )
+
+
+HELP_MESSAGE = """⚔️ Shadow System — Command Protocol
+
+Available commands:
+• Just type anything → I'll respond (AI chat)
+• /imagine <prompt> → Generate an image
+• /ask <question> → Ask me anything
+• /help → Show this message
+
+The System awaits your command, Hunter. 🖤"""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -260,7 +270,8 @@ async def call_gemini(user_text: str, api_key: str) -> str:
     })
 
     if not response.ok:
-        return "The System encountered interference. Try again, Hunter. ⚔️"
+        error_text = await response.text()
+        return f"The System encountered interference. (HTTP {response.status}) ⚔️"
 
     data = (await response.json()).to_py()
     try:
@@ -269,46 +280,57 @@ async def call_gemini(user_text: str, api_key: str) -> str:
         return "The System encountered interference. Try again, Hunter. ⚔️"
 
 
-async def send_meta_message(thread_id: str, message_payload: dict, access_token: str):
-    """Send a message to Instagram via Meta Graph API."""
+async def send_text_reply(sender_id: str, text: str, access_token: str):
+    """Send a text message to a user via Instagram DM.
+
+    Uses the correct Meta Graph API format:
+    - POST /me/messages?access_token=<TOKEN>
+    - recipient: {"id": "<IGSID>"}  (Instagram-Scoped User ID)
+    - message: {"text": "<TEXT>"}
+    """
     from js import fetch, Headers  # Lazy import — avoids snapshot serialization
 
-    url = f"{GRAPH_API_BASE}/me/messages"
+    url = f"{GRAPH_API_BASE}/me/messages?access_token={access_token}"
     body = json.dumps({
-        "recipient": {"thread_key": thread_id},
-        "message": message_payload,
-        "access_token": access_token,
+        "recipient": {"id": sender_id},
+        "message": {"text": text},
     })
     headers = Headers.new({"Content-Type": "application/json"})
-    await fetch(url, {
+    resp = await fetch(url, {
         "method": "POST",
         "headers": headers,
         "body": body,
     })
+    return resp
 
 
-async def send_text_reply(thread_id: str, text: str, access_token: str):
-    """Send a text message to a thread."""
-    await send_meta_message(thread_id, {"text": text}, access_token)
+async def send_image_message(sender_id: str, image_url: str, access_token: str):
+    """Send an image attachment to a user via Instagram DM.
 
+    Uses the correct Meta Graph API format:
+    - POST /me/messages?access_token=<TOKEN>
+    - recipient: {"id": "<IGSID>"}
+    - message: {"attachment": {"type": "image", "payload": {"url": "..."}}}
+    """
+    from js import fetch, Headers  # Lazy import — avoids snapshot serialization
 
-async def send_image_message(thread_id: str, image_url: str, access_token: str):
-    """Send an image attachment to a thread."""
-    await send_meta_message(
-        thread_id,
-        {
+    url = f"{GRAPH_API_BASE}/me/messages?access_token={access_token}"
+    body = json.dumps({
+        "recipient": {"id": sender_id},
+        "message": {
             "attachment": {
                 "type": "image",
                 "payload": {"url": image_url, "is_reusable": True},
             }
         },
-        access_token,
-    )
-
-
-async def send_welcome(thread_id: str, access_token: str):
-    """Send the Shadow System welcome message."""
-    await send_text_reply(thread_id, WELCOME_MESSAGE, access_token)
+    })
+    headers = Headers.new({"Content-Type": "application/json"})
+    resp = await fetch(url, {
+        "method": "POST",
+        "headers": headers,
+        "body": body,
+    })
+    return resp
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -340,7 +362,7 @@ class Default(WorkerEntrypoint):
                 return _json_response({
                     "status": "alive",
                     "service": "shadow-system-bot",
-                    "version": "3.1.0-cf",
+                    "version": "4.0.0-dm",
                 })
 
             # ── Webhook Verification (GET) ──
@@ -416,13 +438,12 @@ class Default(WorkerEntrypoint):
         return _text_response(str(hub_challenge))
 
     async def _handle_webhook(self, request):
-        """Handle Meta's POST webhook events."""
+        """Handle Meta's POST webhook events (DMs only)."""
         from js import console  # Lazy import — Workers logging via JS console
 
         # ── Validate required env bindings ──
-        # Log which secrets are present/missing for diagnostics
         required_secrets = [
-            "APP_SECRET", "INSTA_TOKEN", "BOT_USERNAME",
+            "APP_SECRET", "INSTA_TOKEN",
             "INSTAGRAM_ACCOUNT_ID", "GEMINI_KEY",
         ]
         missing = [s for s in required_secrets if getattr(self.env, s, None) is None]
@@ -433,56 +454,99 @@ class Default(WorkerEntrypoint):
                 status=503,
             )
 
-        app_secret = getattr(self.env, "APP_SECRET", None)
-        insta_token = getattr(self.env, "INSTA_TOKEN", None)
-        bot_username = getattr(self.env, "BOT_USERNAME", None)
-        bot_account_id = getattr(self.env, "INSTAGRAM_ACCOUNT_ID", None)
-        gemini_key = getattr(self.env, "GEMINI_KEY", None)
+        app_secret = _safe_str(getattr(self.env, "APP_SECRET", None))
+        insta_token = _safe_str(getattr(self.env, "INSTA_TOKEN", None))
+        bot_account_id = _safe_str(getattr(self.env, "INSTAGRAM_ACCOUNT_ID", None))
+        gemini_key = _safe_str(getattr(self.env, "GEMINI_KEY", None))
 
         console.log("[Shadow System] All secrets present. Processing webhook...")
 
         # ── Read raw body for signature verification ──
-        body_text = await request.text()
+        try:
+            body_text = _safe_str(await request.text())
+        except Exception as e:
+            console.error(f"[Shadow System] Failed to read request body: {e}")
+            return _error_response("Failed to read request body", status=400)
+
         body_bytes = body_text.encode("utf-8")
 
         # ── Verify HMAC signature ──
-        signature = request.headers.get("X-Hub-Signature-256") or ""
-        if not verify_signature(body_bytes, signature, str(app_secret)):
+        # Get header safely — JsProxy to Python str
+        raw_sig = None
+        try:
+            raw_sig = request.headers.get("X-Hub-Signature-256")
+        except Exception:
+            pass
+        signature = _safe_str(raw_sig)
+
+        console.log(f"[Shadow System] Signature present: {bool(signature)}")
+
+        if not verify_signature(body_bytes, signature, app_secret):
+            console.error("[Shadow System] Signature verification FAILED")
             return _text_response("Invalid signature", status=403)
+
+        console.log("[Shadow System] Signature verified OK")
 
         # ── Parse JSON payload ──
         try:
             payload = json.loads(body_text)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            console.error(f"[Shadow System] Invalid JSON: {e}")
             return _text_response("Invalid JSON", status=400)
 
-        access_token = str(insta_token)
-        username = str(bot_username)
-        account_id = str(bot_account_id)
-        g_key = str(gemini_key)
+        console.log(f"[Shadow System] Payload object type: {payload.get('object', 'unknown')}")
 
-        # ── Process member_added events ──
-        for event in parse_member_added_events(payload):
-            try:
-                await send_welcome(event["thread_id"], access_token)
-            except Exception as e:
-                console.error(f"[Shadow System] Welcome failed: {e}")
+        # ── Only process Instagram webhook events ──
+        if payload.get("object") != "instagram":
+            console.log(f"[Shadow System] Ignoring non-instagram object: {payload.get('object')}")
+            return _json_response({"status": "ignored"})
 
-        # ── Process AI commands ──
-        messages = parse_message_events(payload, account_id)
+        # ── Process DM messages ──
+        messages = parse_message_events(payload, bot_account_id)
+        console.log(f"[Shadow System] Found {len(messages)} message(s) to process")
+
         for msg in messages:
-            cmd = detect_command(msg, username)
-            if cmd["type"] == "none":
-                continue
+            cmd = detect_command(msg)
+            console.log(
+                f"[Shadow System] Message from {msg['sender_id']}: "
+                f"type={cmd['type']}, text={cmd['text'][:50]}..."
+            )
 
             try:
-                if cmd["type"] in ("mention", "ask"):
-                    result = await call_gemini(cmd["text"], g_key)
-                    await send_text_reply(cmd["thread_id"], result, access_token)
-                elif cmd["type"] == "imagine":
-                    img_url = generate_image_url(cmd["text"])
-                    await send_image_message(cmd["thread_id"], img_url, access_token)
-            except Exception as e:
-                console.error(f"[Shadow System] Command '{cmd['type']}' failed: {e}")
+                if cmd["type"] == "help":
+                    resp = await send_text_reply(
+                        cmd["sender_id"], HELP_MESSAGE, insta_token
+                    )
+                    resp_text = _safe_str(await resp.text())
+                    console.log(f"[Shadow System] Help reply result: {resp.status} {resp_text[:200]}")
 
+                elif cmd["type"] == "chat":
+                    # Call Gemini AI
+                    console.log("[Shadow System] Calling Gemini API...")
+                    result = await call_gemini(cmd["text"], gemini_key)
+                    console.log(f"[Shadow System] Gemini response length: {len(result)}")
+
+                    # Send reply back to the sender
+                    resp = await send_text_reply(
+                        cmd["sender_id"], result, insta_token
+                    )
+                    resp_text = _safe_str(await resp.text())
+                    console.log(f"[Shadow System] Send reply result: {resp.status} {resp_text[:200]}")
+
+                elif cmd["type"] == "imagine":
+                    # Generate image URL
+                    img_url = generate_image_url(cmd["text"])
+                    console.log(f"[Shadow System] Image URL: {img_url[:100]}")
+
+                    # Send image
+                    resp = await send_image_message(
+                        cmd["sender_id"], img_url, insta_token
+                    )
+                    resp_text = _safe_str(await resp.text())
+                    console.log(f"[Shadow System] Send image result: {resp.status} {resp_text[:200]}")
+
+            except Exception as e:
+                console.error(f"[Shadow System] Command '{cmd['type']}' failed: {type(e).__name__}: {e}")
+
+        # ── MUST return 200 quickly — Meta expects it within 5 seconds ──
         return _json_response({"status": "ok"})
