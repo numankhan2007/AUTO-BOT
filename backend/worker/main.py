@@ -398,9 +398,14 @@ class Default(WorkerEntrypoint):
                 status=403,
             )
 
-        if hub_token != str(verify_token):
+        # Force both to stripped Python strings — Pyodide JsProxy can add junk
+        expected = str(verify_token).strip()
+        received = str(hub_token).strip() if hub_token else ""
+
+        if received != expected:
             return _error_response(
-                "hub.verify_token does not match VERIFY_TOKEN secret",
+                f"Token mismatch: got [{received}] (len={len(received)}) "
+                f"vs expected [{expected}] (len={len(expected)})",
                 status=403,
             )
 
