@@ -27,29 +27,42 @@ from workers import WorkerEntrypoint
 
 # ═══════════════════════════════════════════════════════════════
 # Response Helpers — always return a valid JS Response, never crash
+#
+# CRITICAL: JS Response() constructor signature is:
+#   new Response(body, init)
+# where `init` is a plain object {status, headers, ...}.
+# Pyodide does NOT translate Python **kwargs into a JS object.
+# We MUST pass the init dict as a POSITIONAL argument.
 # ═══════════════════════════════════════════════════════════════
 
-def _text_response(body: str, status: int = 200, content_type: str = "text/plain") -> Response:
+def _text_response(body="", status=200, content_type="text/plain"):
     """Return a plain-text JS Response. Safe to call anywhere."""
-    return Response.new(
-        body,
-        headers={"Content-Type": content_type},
-        status=status,
-    )
+    try:
+        return Response.new(
+            str(body),
+            {"status": int(status), "headers": {"Content-Type": str(content_type)}},
+        )
+    except Exception:
+        # Absolute last resort — bare Response with no options
+        return Response.new(str(body))
 
 
-def _json_response(data: dict, status: int = 200) -> Response:
+def _json_response(data=None, status=200):
     """Return a JSON JS Response. Safe to call anywhere."""
-    return Response.new(
-        json.dumps(data),
-        headers={"Content-Type": "application/json"},
-        status=status,
-    )
+    try:
+        json_str = json.dumps(data if data is not None else {})
+        return Response.new(
+            json_str,
+            {"status": int(status), "headers": {"Content-Type": "application/json"}},
+        )
+    except Exception:
+        return Response.new(str(data))
 
 
-def _error_response(message: str, status: int = 500) -> Response:
+def _error_response(message="Unknown error", status=500):
     """Return a Shadow System debug error response. Never crashes."""
-    return _text_response(f"Shadow System Debug: {message}", status=status)
+    safe_msg = str(message)
+    return _text_response(f"Shadow System Debug: {safe_msg}", status=int(status))
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -351,7 +364,11 @@ class Default(WorkerEntrypoint):
 
         except Exception as exc:
             # ── LAST RESORT — guarantee a valid Response ──
-            return _error_response(f"{type(exc).__name__}: {exc}")
+            try:
+                return _error_response(str(type(exc).__name__) + ": " + str(exc))
+            except Exception:
+                # If even _error_response fails, return the most basic Response possible
+                return Response.new("Shadow System Debug: internal error")
 
     def _handle_verification(self, query_string: str):
         """
@@ -391,7 +408,7 @@ class Default(WorkerEntrypoint):
             return _error_response("Missing hub.challenge parameter", status=400)
 
         # ── SUCCESS: Return ONLY the challenge as plain text ──
-        return _text_response(hub_challenge)
+        return _text_response(str(hub_challenge))
 
     async def _handle_webhook(self, request):
         """Handle Meta's POST webhook events."""
