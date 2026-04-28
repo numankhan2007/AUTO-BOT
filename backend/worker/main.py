@@ -1,15 +1,13 @@
 # ── main.py — Shadow System Cloudflare Python Worker ──
-# Build trigger: 2026-04-27T22:55 IST — removed unused @cloudflare/vite-plugin
-# Cloudflare Workers-compatible version of the Instagram webhook bot.
+# REWRITE: 2026-04-28 — Eliminated Error 1101 via defensive architecture.
 #
-# Key differences from FastAPI version:
-#   - Uses WorkerEntrypoint instead of FastAPI
-#   - Uses fetch() from js module instead of httpx
-#   - JS imports are LAZY (inside functions) to avoid snapshot serialization errors
-#   - Calls Gemini REST API directly (SDK not compatible with Pyodide)
-#   - Secrets accessed via self.env instead of dotenv
-#   - No fire-and-forget tasks — all processing is inline
-#   - No APScheduler — token refresh handled externally
+# Architecture notes:
+#   - Uses `from js import Response` for ALL outgoing responses (most reliable
+#     path in Pyodide — bypasses any workers-sdk abstraction issues).
+#   - Global try/except in fetch() guarantees NO unhandled exception ever.
+#   - Every env binding checked with getattr() before use.
+#   - Webhook handshake returns ONLY hub.challenge as plain text.
+#   - Non-API routes fall through to env.ASSETS.fetch() for the React frontend.
 
 import json
 import hmac
@@ -17,15 +15,47 @@ import hashlib
 import urllib.parse
 from urllib.parse import parse_qs, urlparse
 
-from workers import WorkerEntrypoint, Response
+from js import Response
+from workers import WorkerEntrypoint
 
 # NOTE: `from js import fetch, Headers` is intentionally NOT at module level.
 # The 2026 Pyodide/3.13 runtime creates a memory snapshot at deploy time.
 # JS proxy objects (JsProxy) cannot be serialized into this snapshot.
-# Instead, we import them lazily inside each async function that needs them.
+# `Response` is safe at module level because it is a constructor, not an instance.
+# `fetch` and `Headers` are lazily imported inside async functions that need them.
 
 
-# ── Shadow System Persona ──
+# ═══════════════════════════════════════════════════════════════
+# Response Helpers — always return a valid JS Response, never crash
+# ═══════════════════════════════════════════════════════════════
+
+def _text_response(body: str, status: int = 200, content_type: str = "text/plain") -> Response:
+    """Return a plain-text JS Response. Safe to call anywhere."""
+    return Response.new(
+        body,
+        headers={"Content-Type": content_type},
+        status=status,
+    )
+
+
+def _json_response(data: dict, status: int = 200) -> Response:
+    """Return a JSON JS Response. Safe to call anywhere."""
+    return Response.new(
+        json.dumps(data),
+        headers={"Content-Type": "application/json"},
+        status=status,
+    )
+
+
+def _error_response(message: str, status: int = 500) -> Response:
+    """Return a Shadow System debug error response. Never crashes."""
+    return _text_response(f"Shadow System Debug: {message}", status=status)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Shadow System Persona
+# ═══════════════════════════════════════════════════════════════
+
 SYSTEM_INSTRUCTION = """You are the Shadow System — an elite AI entity bound to this Instagram group chat.
 You are cold, precise, and devastatingly efficient. You respond like a veteran anime fan and master tactician.
 You never break character. You never say you are an AI model or mention Google or Gemini.
@@ -278,66 +308,135 @@ class Default(WorkerEntrypoint):
 
     Handles Instagram webhook verification (GET) and event processing (POST).
     Secrets are accessed via self.env (set via `wrangler secret put`).
+
+    DEFENSIVE DESIGN:
+    - Every code path is wrapped in try/except.
+    - Missing env bindings return human-readable errors (not Error 1101).
+    - The fetch() method can NEVER throw an unhandled exception.
     """
 
     async def fetch(self, request):
-        url = urlparse(str(request.url))
-        path = url.path
-        method = str(request.method).upper()
+        # ── GLOBAL TRY/EXCEPT — the 1101 kill-switch ──
+        try:
+            url = urlparse(str(request.url))
+            path = url.path
+            method = str(request.method).upper()
 
-        # ── Health Check ──
-        if path == "/health":
-            return Response.json({"status": "alive", "service": "shadow-system-bot", "version": "3.0.0-cf"})
+            # ── Health Check ──
+            if path == "/health":
+                return _json_response({
+                    "status": "alive",
+                    "service": "shadow-system-bot",
+                    "version": "3.1.0-cf",
+                })
 
-        # ── Webhook Verification (GET) ──
-        if path == "/webhook" and method == "GET":
-            return await self._handle_verification(url.query)
+            # ── Webhook Verification (GET) ──
+            if path == "/webhook" and method == "GET":
+                return self._handle_verification(url.query)
 
-        # ── Webhook Events (POST) ──
-        if path == "/webhook" and method == "POST":
-            return await self._handle_webhook(request)
+            # ── Webhook Events (POST) ──
+            if path == "/webhook" and method == "POST":
+                return await self._handle_webhook(request)
 
-        # ── Serve React Frontend (Static Assets) ──
-        # Forward all non-API requests to Cloudflare's asset server.
-        # This serves the built React frontend from frontend/dist/.
-        # ASSETS binding is configured in wrangler.toml [assets] section.
-        return await self.env.ASSETS.fetch(request)
+            # ── Serve React Frontend (Static Assets) ──
+            # Forward all non-API requests to Cloudflare's asset server.
+            assets = getattr(self.env, "ASSETS", None)
+            if assets is None:
+                return _error_response(
+                    "Missing ASSETS binding in Dashboard. "
+                    "Add [assets] directory in wrangler.toml and redeploy.",
+                    status=503,
+                )
+            return await assets.fetch(request)
 
-    async def _handle_verification(self, query_string: str):
-        """Handle Meta's GET webhook verification challenge."""
+        except Exception as exc:
+            # ── LAST RESORT — guarantee a valid Response ──
+            return _error_response(f"{type(exc).__name__}: {exc}")
+
+    def _handle_verification(self, query_string: str):
+        """
+        Handle Meta's GET webhook verification challenge.
+
+        Returns ONLY the hub.challenge value as plain text on success.
+        """
+        # ── Check env.VERIFY_TOKEN exists ──
+        verify_token = getattr(self.env, "VERIFY_TOKEN", None)
+        if verify_token is None:
+            return _error_response(
+                "Missing VERIFY_TOKEN in Dashboard. "
+                "Run: npx wrangler secret put VERIFY_TOKEN",
+                status=503,
+            )
+
+        # ── Parse query parameters ──
         params = parse_qs(query_string or "")
         hub_mode = params.get("hub.mode", [None])[0]
         hub_token = params.get("hub.verify_token", [None])[0]
         hub_challenge = params.get("hub.challenge", [None])[0]
 
-        if hub_mode == "subscribe" and hub_token == str(self.env.VERIFY_TOKEN):
-            return Response(hub_challenge or "", headers={"Content-Type": "text/plain"})
+        # ── Validate handshake ──
+        if hub_mode != "subscribe":
+            return _error_response(
+                f"Invalid hub.mode: expected 'subscribe', got '{hub_mode}'",
+                status=403,
+            )
 
-        return Response("Verification failed", status=403)
+        if hub_token != str(verify_token):
+            return _error_response(
+                "hub.verify_token does not match VERIFY_TOKEN secret",
+                status=403,
+            )
+
+        if not hub_challenge:
+            return _error_response("Missing hub.challenge parameter", status=400)
+
+        # ── SUCCESS: Return ONLY the challenge as plain text ──
+        return _text_response(hub_challenge)
 
     async def _handle_webhook(self, request):
         """Handle Meta's POST webhook events."""
         from js import console  # Lazy import — Workers logging via JS console
 
-        # Read raw body for signature verification
+        # ── Validate required env bindings ──
+        app_secret = getattr(self.env, "APP_SECRET", None)
+        if app_secret is None:
+            return _error_response("Missing APP_SECRET in Dashboard", status=503)
+
+        insta_token = getattr(self.env, "INSTA_TOKEN", None)
+        if insta_token is None:
+            return _error_response("Missing INSTA_TOKEN in Dashboard", status=503)
+
+        bot_username = getattr(self.env, "BOT_USERNAME", None)
+        if bot_username is None:
+            return _error_response("Missing BOT_USERNAME in Dashboard", status=503)
+
+        bot_account_id = getattr(self.env, "INSTAGRAM_ACCOUNT_ID", None)
+        if bot_account_id is None:
+            return _error_response("Missing INSTAGRAM_ACCOUNT_ID in Dashboard", status=503)
+
+        gemini_key = getattr(self.env, "GEMINI_KEY", None)
+        if gemini_key is None:
+            return _error_response("Missing GEMINI_KEY in Dashboard", status=503)
+
+        # ── Read raw body for signature verification ──
         body_text = await request.text()
         body_bytes = body_text.encode("utf-8")
 
-        # Verify HMAC signature
+        # ── Verify HMAC signature ──
         signature = request.headers.get("X-Hub-Signature-256") or ""
-        if not verify_signature(body_bytes, signature, str(self.env.APP_SECRET)):
-            return Response("Invalid signature", status=403)
+        if not verify_signature(body_bytes, signature, str(app_secret)):
+            return _text_response("Invalid signature", status=403)
 
-        # Parse JSON payload
+        # ── Parse JSON payload ──
         try:
             payload = json.loads(body_text)
         except json.JSONDecodeError:
-            return Response("Invalid JSON", status=400)
+            return _text_response("Invalid JSON", status=400)
 
-        access_token = str(self.env.INSTA_TOKEN)
-        bot_username = str(self.env.BOT_USERNAME)
-        bot_account_id = str(self.env.INSTAGRAM_ACCOUNT_ID)
-        gemini_key = str(self.env.GEMINI_KEY)
+        access_token = str(insta_token)
+        username = str(bot_username)
+        account_id = str(bot_account_id)
+        g_key = str(gemini_key)
 
         # ── Process member_added events ──
         for event in parse_member_added_events(payload):
@@ -347,15 +446,15 @@ class Default(WorkerEntrypoint):
                 console.error(f"[Shadow System] Welcome failed: {e}")
 
         # ── Process AI commands ──
-        messages = parse_message_events(payload, bot_account_id)
+        messages = parse_message_events(payload, account_id)
         for msg in messages:
-            cmd = detect_command(msg, bot_username)
+            cmd = detect_command(msg, username)
             if cmd["type"] == "none":
                 continue
 
             try:
                 if cmd["type"] in ("mention", "ask"):
-                    result = await call_gemini(cmd["text"], gemini_key)
+                    result = await call_gemini(cmd["text"], g_key)
                     await send_text_reply(cmd["thread_id"], result, access_token)
                 elif cmd["type"] == "imagine":
                     img_url = generate_image_url(cmd["text"])
@@ -363,4 +462,4 @@ class Default(WorkerEntrypoint):
             except Exception as e:
                 console.error(f"[Shadow System] Command '{cmd['type']}' failed: {e}")
 
-        return Response.json({"status": "ok"})
+        return _json_response({"status": "ok"})
