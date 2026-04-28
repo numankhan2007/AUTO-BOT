@@ -1,30 +1,23 @@
-# ── wrangler.toml — Shadow System Worker Configuration ──
-# Deploy with: cd backend/worker && uv run pywrangler deploy
-# Do NOT use `npx wrangler deploy` — it cannot bundle Python dependencies.
+# ── wrangler.toml — Shadow System Cloudflare Python Worker ──
+# Deployment config for pywrangler CLI.
 
-name = "auto-bot-01"                           # Must match the deployed Worker name in Cloudflare Dashboard
+name = "auto-bot-01"
 main = "main.py"
-compatibility_date = "2026-04-27"
+compatibility_date = "2026-04-28"
 compatibility_flags = ["python_workers"]
 
 # ── Static Assets (React Frontend) ──
-# Serves the built Vite output from frontend/dist/.
-# With binding = "ASSETS", ALL requests hit the Worker first.
-# The Worker calls self.env.ASSETS.fetch(request) for non-API routes.
+# The ASSETS binding serves the Vite-built React app.
+# Path is relative to THIS file (backend/worker/wrangler.toml).
 [assets]
-directory = "../../frontend/dist"              # Relative to this wrangler.toml file
-binding = "ASSETS"                             # Exposes self.env.ASSETS in Python Worker
+directory = "../../frontend/dist"
 
-# ── Observability (enables stored/searchable logs in dashboard) ──
-[observability]
-enabled = true
-
-# ── Secrets (set via Dashboard or CLI, NEVER hardcoded here) ──
-# Dashboard: Workers & Pages → auto-bot-01 → Settings → Variables and Secrets
-# CLI alternative:
-#   npx wrangler secret put VERIFY_TOKEN
-#   npx wrangler secret put APP_SECRET
-#   npx wrangler secret put INSTA_TOKEN
-#   npx wrangler secret put INSTAGRAM_ACCOUNT_ID
-#   npx wrangler secret put BOT_USERNAME
-#   npx wrangler secret put GEMINI_KEY
+# ── Environment Variables & Secrets ──
+# Set secrets via: npx wrangler secret put <KEY_NAME>
+# Required secrets:
+#   APP_SECRET
+#   BOT_USERNAME
+#   GEMINI_KEY
+#   INSTA_TOKEN
+#   INSTAGRAM_ACCOUNT_ID
+#   VERIFY_TOKEN

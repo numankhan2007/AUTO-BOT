@@ -2,16 +2,16 @@
 name = "auto-bot-01"
 version = "3.0.0"
 description = "Shadow System Instagram Bot — Cloudflare Python Worker"
-requires-python = ">= 3.13"
+requires-python = ">= 3.12"
 
-# Runtime dependency — workers-py provides the `workers` module
-# that pywrangler bundles into the deployed Worker.
-# js.fetch, json, hmac, hashlib, urllib.parse are Python stdlib / FFI built-ins.
-dependencies = [
-    "workers-py>=1.9.0",
-]
+# Runtime dependencies — packages that pywrangler will bundle
+# into the deployed Worker via Pyodide.
+# Note: `workers` module and `js` FFI are provided by the runtime,
+#       they do NOT need to be listed here.
+dependencies = []
 
 [dependency-groups]
 dev = [
+    "workers-py>=1.9.0",
     "workers-runtime-sdk",
 ]
