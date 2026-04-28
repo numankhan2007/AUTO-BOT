@@ -1,7 +1,7 @@
 # ── wrangler.toml — Shadow System Cloudflare Python Worker ──
 # Deployment config for pywrangler CLI.
 
-name = "auto-bot-01"
+name = "shadow-system"
 main = "main.py"
 compatibility_date = "2026-04-28"
 compatibility_flags = ["python_workers"]
