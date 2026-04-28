@@ -31,6 +31,8 @@ env/
 
 # Cloudflare Worker
 .wrangler/
+python_modules/
+uv.lock
 
 # Logs
 logs/
